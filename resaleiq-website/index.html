@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResaleIQ — How the phone resale-price model works</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="mobile-bar">
+  <div class="brand" style="margin:0;">
+    <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#161221" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+    <div><div class="brand-name">ResaleIQ</div></div>
+  </div>
+  <button class="icon-btn" data-menu-toggle aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+</div>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#161221" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+      <div>
+        <div class="brand-name">ResaleIQ</div>
+        <div class="brand-sub">Phone valuation engine</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Explore</div>
+      <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>The Model</a>
+      <a href="dataset.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>The Dataset</a>
+      <a href="predict.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 18h6"/></svg>Predict a Price</a>
+      <a href="about.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>About Me</a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="theme-toggle" data-theme-toggle>
+        <span>Appearance · <span data-theme-label>Dark</span></span>
+        <span class="toggle-track"><span class="toggle-dot"></span></span>
+      </div>
+      <div class="sidebar-links">
+        <a class="icon-btn" href="https://github.com/shanib-techie" target="_blank" rel="noopener" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.5 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.46-1.2-1.11-1.53-1.11-1.53-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.9 1.57 2.34 1.12 2.91.86.09-.66.35-1.12.64-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.27ā2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.09-.66.35-1.12.64-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.27 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.46.1 2.72.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.81 0 .28.18.61.69.5A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg></a>
+        <a class="icon-btn" href="predict.html" aria-label="Try predictor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <section class="page-hero">
+      <span class="eyebrow">Model documentation</span>
+      <h1>Three algorithms competed to price a used phone. One of them earned the job.</h1>
+      <p class="lede">ResaleIQ predicts what a second-hand phone is actually worth from 1 million real resale listings. This page walks through how the model was built — including the two approaches that fell short before LightGBM took over.</p>
+      <div style="display:flex; gap:12px; margin-top:26px; flex-wrap:wrap;">
+        <a href="predict.html" class="btn btn-primary">Try the predictor <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a href="dataset.html" class="btn btn-ghost">See the dataset</a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Scoreboard</h2>
+        <span class="tag">measured on held-out test data, R² / MAE / RMSE</span>
+      </div>
+      <div class="card" style="overflow-x:auto; padding:0;">
+        <table class="model-table">
+          <thead>
+            <tr><th>Model</th><th>Training data</th><th>R² score</th><th>MAE</th><th>RMSE</th><th>Verdict</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Random Forest <span class="mono" style="color:var(--text-faint); font-size:.72rem;">(30 trees)</span></td>
+              <td class="num">160,000 rows <span class="mono" style="color:var(--text-faint);">(20% sample)</span></td>
+              <td class="num">0.9497</td>
+              <td class="num">—</td>
+              <td class="num">—</td>
+              <td><span class="pill bad">Under-scaled</span></td>
+            </tr>
+            <tr>
+              <td>XGBoost <span class="mono" style="color:var(--text-faint); font-size:.72rem;">(depth 3)</span></td>
+              <td class="num">160,000 rows <span class="mono" style="color:var(--text-faint);">(unseeded sample)</span></td>
+              <td class="num">0.9396</td>
+              <td class="num">—</td>
+              <td class="num">—</td>
+              <td><span class="pill bad">Under-fit</span></td>
+            </tr>
+            <tr class="winner">
+              <td>LightGBM <span class="mono" style="color:var(--jade-strong); font-size:.72rem;">(300 trees)</span></td>
+              <td class="num">800,000 rows <span class="mono" style="color:var(--text-faint);">(full 80/20 split)</span></td>
+              <td class="num">0.9836</td>
+              <td class="num">₹1,698.63</td>
+              <td class="num">₹2,141.41</td>
+              <td><span class="pill good">In production</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>What went wrong first</h2>
+        <span class="tag">02 attempts before the working model</span>
+      </div>
+      <div class="problem-list">
+        <div class="problem">
+          <h4>Random Forest was starved of trees and data <span class="tagmini">R² 0.9497</span></h4>
+          <p>Only 30 trees were grown, and the forest only ever saw a 200,000-row sample of the 1M-row dataset instead of the full thing. Random Forest builds every tree independently on a bootstrap sample, so a shallow forest averages over too few, too-similar trees — it plateaus early and never sees roughly 80% of the available listings.</p>
+        </div>
+        <div class="problem">
+          <h4>XGBoost was capped too shallow, and the sample wasn't reproducible <span class="tagmini">R² 0.9396</span></h4>
+          <p>Trees were limited to <code>max_depth=3</code>, which is too shallow to capture interactions like "cracked screen + Poor condition + low battery health." Worse, the row sample used no fixed <code>random_state</code>, so re-running the notebook draws a different 200,000 rows every time — the score isn't even reproducible run to run.</p>
+        </div>
+      </div>
+      <div class="win-note" style="margin-top:14px;">
+        <h4 style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">LightGBM fixed both problems at once <span class="pill good">R² 0.9836</span></h4>
+        <p style="margin:0;">LightGBM grows trees leaf-wise instead of level-wise and bins features into histograms before splitting, so it trains fast even on the <strong>full 800,000-row training set</strong> — no subsampling needed. With 300 trees, a learning rate of 0.05 and max depth of 8, it captures the deeper feature interactions the other two missed, cutting average prediction error to about ₹1,699 on phones that average roughly ₹22,584.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>What actually drives the price</h2>
+        <span class="tag">LightGBM feature importance, split count</span>
+      </div>
+      <div class="card">
+        <div class="feature-bars" id="feature-bars"></div>
+      </div>
+      <p style="margin-top:16px; font-size:.85rem;">Zero-importance features — camera score, processor score, screen size, release year, 5G, OS type, city tier, seller type — were never chosen for a single split. That's not a data-quality issue; it means the model already explains resale price well enough from condition and demand signals that these attributes add no further information on top.</p>
+    </section>
+
+    <section class="section" style="border-bottom:none;">
+      <div class="section-head"><h2>Read the price for yourself</h2></div>
+      <div class="card" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+        <p style="margin:0; max-width:50ch;">Plug in a phone's spec sheet and condition, and the estimator (built from these same importance weights) will give you an instant resale range.</p>
+        <a href="predict.html" class="btn btn-primary">Open the predictor →</a>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <span>ResaleIQ · trained on 1,000,000 resale listings</span>
+      <span>Built by <a href="about.html" style="text-decoration:underline;">Shanib Khan</a></span>
+    </footer>
+  </main>
+</div>
+
+<script src="js/theme.js"></script>
+<script>
+const FEATURES = [
+  ["original_price", 1940], ["age_months", 1449], ["market_demand_score", 1306],
+  ["battery_health", 991], ["water_damage", 388], ["screen_cracked", 331],
+  ["condition_Poor", 309], ["condition_Excellent", 290], ["brand_Apple", 288],
+  ["warranty_remaining_months", 231], ["brand_Realme", 212], ["condition_Good", 186],
+  ["body_damage", 158], ["repair_history", 147], ["brand_Vivo", 143],
+  ["brand_Samsung", 141], ["condition_Fair", 103], ["brand_Google", 98],
+  ["brand_Xiaomi", 80], ["charger_available", 71], ["box_available", 64],
+  ["brand_OnePlus", 58], ["os_type_Android", 16]
+];
+const max = Math.max(...FEATURES.map(f=>f[1]));
+const wrap = document.getElementById('feature-bars');
+FEATURES.forEach(([name, val])=>{
+  const pct = (val/max*100).toFixed(1);
+  const row = document.createElement('div');
+  row.className = 'fbar-row';
+  row.innerHTML = `<div class="fbar-name">${name}</div>
+    <div class="fbar-track"><div class="fbar-fill" style="width:${pct}%"></div></div>
+    <div class="fbar-val">${val}</div>`;
+  wrap.appendChild(row);
+});
+</script>
+</body>
+</html>
