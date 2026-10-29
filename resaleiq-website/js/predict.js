@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const ctrl = new AbortController();
       kill = setTimeout(() => ctrl.abort(), 90000);
 
-      const res = await fetch('/prediction', {
+      const res = await fetch('https://resaleiq-checkyourownphone.onrender.com/prediction', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload), signal: ctrl.signal,
       });
