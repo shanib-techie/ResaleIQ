@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
 import joblib
+from pathlib import Path
 
 app = FastAPI()
 
@@ -16,9 +17,13 @@ app.add_middleware(
 )
 
 # Load Model
-model = joblib.load("model.pkl")
-model_columns = joblib.load("model_columns.pkl")
+# model = joblib.load("model.pkl")
+# model_columns = joblib.load("model_columns.pkl")
 
+BASE_DIR = Path(__file__).resolve().parent
+
+model = joblib.load(BASE_DIR / "model.pkl")
+model_columns = joblib.load(BASE_DIR / "model_columns.pkl")
 
 # Request Body
 class Detail(BaseModel):
@@ -74,7 +79,14 @@ def resale_price(data: Detail):
     return {
         "predicted_resale_price": round(float(result[0]), 2)
     }
-
+except Exception as e:
+        import logging
+        logging.exception("Prediction failed")
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction failed: {str(e)}"
+        )
 
 # Static Files
 app.mount("/", StaticFiles(directory="resaleiq-website", html=True), name="static")
