@@ -103,18 +103,61 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload), signal: ctrl.signal,
       });
+      
       const text = await res.text();
-      if (!res.ok) throw new Error(`Server ${res.status}: ${text.slice(0, 120)}`);
-      const p = JSON.parse(text).predicted_resale_price;
-      if (typeof p !== 'number') throw new Error('Bad response: ' + text.slice(0, 120));
+
+      console.log('Prediction status:', res.status);
+      console.log('Prediction response:', JSON.stringify(text));
+
+      if (!res.ok) {
+        throw new Error(`Server ${res.status}: ${text.slice(0, 200) || 'Empty response'}`);
+      }
+
+      if (!text.trim()) {
+        throw new Error('Backend returned an empty response');
+      }
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error('Invalid JSON response: ' + text.slice(0, 200));
+      }
+
+      const p = result.predicted_resale_price;
+
+      if (typeof p !== 'number' || !Number.isFinite(p)) {
+        throw new Error('Invalid predicted price: ' + text.slice(0, 200));
+      }
+
       out.textContent = '₹' + Math.round(p).toLocaleString('en-IN');
+
       const badge = $('device-badge');
       if (badge) badge.textContent = `${payload.brand} · ${payload.condition}`;
+
     } catch (e) {
-      console.error(e);
-      out.textContent = e.name === 'AbortError' ? 'Timed out, try again' : 'Error: ' + e.message;
-    } finally { clearTimeout(slow); clearTimeout(kill); }
+      console.error('Prediction error:', e);
+      out.textContent = e.name === 'AbortError'
+        ? 'Timed out, try again'
+        : 'Error: ' + e.message;
+    } finally {
+      clearTimeout(slow);
+      clearTimeout(kill);
+    }
   }
+      
+  //     const text = await res.text();
+  //     if (!res.ok) throw new Error(`Server ${res.status}: ${text.slice(0, 120)}`);
+  //     const p = JSON.parse(text).predicted_resale_price;
+  //     if (typeof p !== 'number') throw new Error('Bad response: ' + text.slice(0, 120));
+  //     out.textContent = '₹' + Math.round(p).toLocaleString('en-IN');
+  //     const badge = $('device-badge');
+  //     if (badge) badge.textContent = `${payload.brand} · ${payload.condition}`;
+  //   } catch (e) {
+  //     console.error(e);
+  //     out.textContent = e.name === 'AbortError' ? 'Timed out, try again' : 'Error: ' + e.message;
+  //   } finally { clearTimeout(slow); clearTimeout(kill); }
+  // }
 
   $('estimate-btn').addEventListener('click', render);
 });
