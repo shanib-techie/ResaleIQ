@@ -17,13 +17,13 @@ app.add_middleware(
 )
 
 # Load Model
-# model = joblib.load("model.pkl")
-# model_columns = joblib.load("model_columns.pkl")
+model = joblib.load("model.pkl")
+model_columns = joblib.load("model_columns.pkl")
 
-BASE_DIR = Path(__file__).resolve().parent
+# BASE_DIR = Path(__file__).resolve().parent
 
-model = joblib.load(BASE_DIR / "model.pkl")
-model_columns = joblib.load(BASE_DIR / "model_columns.pkl")
+# model = joblib.load(BASE_DIR / "model.pkl")
+# model_columns = joblib.load(BASE_DIR / "model_columns.pkl")
 
 
 # Request Body
