@@ -43,44 +43,43 @@ class Detail(BaseModel):
     market_demand_score: int
 
 
+
 @app.post("/prediction")
 def resale_price(data: Detail):
+    try:
+        df_new = pd.DataFrame([{
+            "brand": data.brand,
+            "condition": data.condition,
+            "original_price": data.original_price,
+            "age_months": data.age_months,
+            "battery_health": data.battery_health,
+            "screen_cracked": data.screen_cracked,
+            "body_damage": data.body_damage,
+            "repair_history": data.repair_history,
+            "water_damage": data.water_damage,
+            "warranty_remaining_months": data.warranty_remaining_months,
+            "box_available": data.box_available,
+            "charger_available": data.charger_available,
+            "market_demand_score": data.market_demand_score
+        }])
 
-    df_new = pd.DataFrame([{
-        "brand": data.brand,
-        "condition": data.condition,
-        "original_price": data.original_price,
-        "age_months": data.age_months,
-        "battery_health": data.battery_health,
-        "screen_cracked": data.screen_cracked,
-        "body_damage": data.body_damage,
-        "repair_history": data.repair_history,
-        "water_damage": data.water_damage,
-        "warranty_remaining_months": data.warranty_remaining_months,
-        "box_available": data.box_available,
-        "charger_available": data.charger_available,
-        "market_demand_score": data.market_demand_score
-    }])
+        df_new = pd.get_dummies(
+            df_new,
+            columns=["brand", "condition"]
+        )
 
-    # One Hot Encoding
-    df_new = pd.get_dummies(
-        df_new,
-        columns=[
-            "brand",
-            "condition"
-        ]
-    )
+        df_new = df_new.reindex(
+            columns=model_columns,
+            fill_value=0
+        )
 
-    # Missing columns add
-    df_new = df_new.reindex(columns=model_columns, fill_value=0)
+        result = model.predict(df_new)
 
-    # Prediction
-    result = model.predict(df_new)
+        return {
+            "predicted_resale_price": round(float(result[0]), 2)
+        }
 
-    return {
-        "predicted_resale_price": round(float(result[0]), 2)
-    }
-except Exception as e:
+    except Exception as e:
         import logging
         logging.exception("Prediction failed")
         from fastapi import HTTPException
