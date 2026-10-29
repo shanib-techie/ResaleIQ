@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sw.addEventListener('click', () => sw.classList.toggle('on'));
   });
   const switchOn = (name) => document.querySelector(`[data-switch="${name}"]`).classList.contains('on');
-
   async function render() {
     const payload = {
       brand: $('brand').value,
@@ -37,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
+        
       });
 
       if (!res.ok) {
