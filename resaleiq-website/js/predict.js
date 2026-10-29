@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     priceOut.textContent = 'Calculating…';
 
     try {
-      const res = await fetch('http://resaleiq-checkyourownphone.onrender.com//prediction', {
+      const res = await fetch('https://resaleiq-checkyourownphone.onrender.com/prediction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
