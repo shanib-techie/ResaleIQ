@@ -25,6 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent
 model = joblib.load(BASE_DIR / "model.pkl")
 model_columns = joblib.load(BASE_DIR / "model_columns.pkl")
 
+
 # Request Body
 class Detail(BaseModel):
     brand: str
