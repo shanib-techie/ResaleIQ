@@ -1,172 +1,221 @@
-// // Sends the form to the real trained LightGBM model via the FastAPI
-// // /prediction endpoint (see main.py). Only the fields present in this
-// // form are sent, matching model_columns.pkl exactly.
+/* ResaleIQ - predict.js (full rewrite)
+   Frontend -> FastAPI POST /prediction
+*/
+(function () {
+  "use strict";
 
-// document.addEventListener('DOMContentLoaded', () => {
-//   const $ = (id) => document.getElementById(id);
+  // ---------- API URL ----------
+  // Same server pe ho to relative URL. Static site / local file pe ho to Web Service ka full URL.
+  const WEB_SERVICE_URL = "https://resaleiq.onrender.com";
+  const host = window.location.hostname;
+  const isMainServer = host === "resaleiq.onrender.com" || host === "localhost" || host === "127.0.0.1";
+  const API_BASE = isMainServer ? "" : WEB_SERVICE_URL;
+  const API_URL = API_BASE + "/prediction";
 
-//   // toggle switches
-//   document.querySelectorAll('[data-switch]').forEach(sw => {
-//     sw.addEventListener('click', () => sw.classList.toggle('on'));
-//   });
-//   const switchOn = (name) => document.querySelector(`[data-switch="${name}"]`).classList.contains('on');
-//   async function render() {
-//     const payload = {
-//       brand: $('brand').value,
-//       condition: $('condition').value,
-//       original_price: parseInt($('original_price').value) || 0,
-//       age_months: parseInt($('age_months').value) || 0,
-//       battery_health: parseInt($('battery_health').value) || 0,
-//       screen_cracked: switchOn('screen_cracked') ? 1 : 0,
-//       body_damage: switchOn('body_damage') ? 1 : 0,
-//       repair_history: parseInt($('repair_history').value) || 0,
-//       water_damage: switchOn('water_damage') ? 1 : 0,
-//       warranty_remaining_months: parseInt($('warranty_remaining_months').value) || 0,
-//       box_available: switchOn('box_available') ? 1 : 0,
-//       charger_available: switchOn('charger_available') ? 1 : 0,
-//       market_demand_score: parseInt($('market_demand_score').value) || 0
-//     };
+  const MODEL_MAE = 1699; // average error of trained model (₹)
 
-//     const priceOut = $('price-out');
-//     const originalText = priceOut.textContent;
-//     priceOut.textContent = 'Calculating…';
-
-//     try {
-//       const res = await fetch('https://resaleiq-checkyourownphone.onrender.com/prediction', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify(payload)
-        
-//       });
-
-//       if (!res.ok) {
-//         const err = await res.text();
-//         console.error('Prediction request failed:', res.status, err);
-//         priceOut.textContent = 'Error — check server';
-//         return;
-//       }
-
-//       const data = await res.json();
-//       priceOut.textContent = '₹' + data.predicted_resale_price.toLocaleString('en-IN');
-
-//       const badge = $('device-badge');
-//       if (badge) {
-//         badge.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/></svg> ${payload.brand} · ${payload.condition}`;
-//       }
-//     } catch (e) {
-//       console.error('Prediction request error:', e);
-//       priceOut.textContent = originalText;
-//     }
-//   }
-
-//   $('estimate-btn').addEventListener('click', render);
-// });
-
-
-
-
-
-
-document.addEventListener('DOMContentLoaded', () => {
-  const $ = id => document.getElementById(id);
-  const out = $('price-out');
-
-  document.querySelectorAll('[data-switch]').forEach(sw =>
-    sw.addEventListener('click', () => sw.classList.toggle('on')));
-  const sw = n => {
-    const s = document.querySelector(`[data-switch="${n}"]`);
-    if (!s) throw new Error('switch not found: ' + n);
-    return s.classList.contains('on') ? 1 : 0;
+  // ---------- Helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const num = (id, fallback) => {
+    const el = $(id);
+    if (!el) return fallback;
+    const v = parseFloat(el.value);
+    return Number.isFinite(v) ? v : fallback;
   };
-  const el = id => { const e = $(id); if (!e) throw new Error('id not found: ' + id); return e; };
-  const num = id => parseInt(el(id).value, 10) || 0;
+  const inr = (n) => "₹" + Math.round(n).toLocaleString("en-IN");
 
-  async function render() {
-    let slow, kill;
+  // ---------- Switches (toggle on/off) ----------
+  const switches = document.querySelectorAll("[data-switch]");
+  switches.forEach((sw) => {
+    sw.addEventListener("click", () => sw.classList.toggle("on"));
+  });
+  const sw = (name) => {
+    const el = document.querySelector('[data-switch="' + name + '"]');
+    return el && el.classList.contains("on") ? 1 : 0;
+  };
+
+  // ---------- Build payload ----------
+  function buildPayload() {
+    return {
+      brand: $("brand").value,
+      condition: $("condition").value,
+      original_price: num("original_price", 45000),
+      age_months: num("age_months", 0),
+      battery_health: num("battery_health", 100),
+      screen_cracked: sw("screen_cracked"),
+      body_damage: sw("body_damage"),
+      repair_history: Math.round(num("repair_history", 0)),
+      water_damage: sw("water_damage"),
+      warranty_remaining_months: num("warranty_remaining_months", 0),
+      box_available: sw("box_available"),
+      charger_available: sw("charger_available"),
+      market_demand_score: num("market_demand_score", 50),
+    };
+  }
+
+  function validate(p) {
+    if (p.original_price < 1000) return "Original price kam se kam ₹1,000 hona chahiye.";
+    if (p.age_months < 0 || p.age_months > 120) return "Age 0 se 120 months ke beech rakho.";
+    if (p.battery_health < 0 || p.battery_health > 100) return "Battery health 0-100% ke beech rakho.";
+    if (p.market_demand_score < 0 || p.market_demand_score > 100) return "Demand score 0-100 ke beech rakho.";
+    return null;
+  }
+
+  // ---------- UI updates ----------
+  function setLoading(on) {
+    const btn = $("estimate-btn");
+    if (!btn) return;
+    btn.disabled = on;
+    btn.textContent = on ? "Estimating…" : "Estimate resale price";
+  }
+
+  function showError(msg) {
+    $("price-out").textContent = "—";
+    $("range-out").textContent = msg;
+    $("confidence-fill").style.width = "0%";
+    $("drivers").innerHTML = "";
+  }
+
+  function animatePrice(target) {
+    const el = $("price-out");
+    const duration = 500;
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = inr(target * eased);
+      if (t < 1) requestAnimationFrame(frame);
+      else el.textContent = inr(target);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function renderDrivers(p, price) {
+    const items = [];
+    const ratio = price / p.original_price;
+    items.push({ label: "Original price", note: inr(p.original_price) });
+    items.push({ label: "Age", note: p.age_months + " months" });
+    items.push({ label: "Condition", note: p.condition });
+    items.push({ label: "Battery health", note: p.battery_health + "%" });
+    items.push({ label: "Market demand", note: p.market_demand_score + "/100" });
+    if (p.screen_cracked) items.push({ label: "Screen cracked", note: "lowers value" });
+    if (p.body_damage) items.push({ label: "Body damage", note: "lowers value" });
+    if (p.water_damage) items.push({ label: "Water damage", note: "lowers value" });
+    if (p.repair_history > 0) items.push({ label: "Past repairs", note: p.repair_history });
+    if (p.warranty_remaining_months > 0) items.push({ label: "Warranty", note: p.warranty_remaining_months + " months left" });
+    items.push({ label: "Resale / original", note: Math.round(ratio * 100) + "%" });
+
+    $("drivers").innerHTML = items
+      .map(
+        (i) =>
+          '<div class="driver" style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:.82rem;">' +
+          "<span>" + i.label + "</span>" +
+          '<span class="mono" style="color:var(--text-faint);">' + i.note + "</span></div>"
+      )
+      .join("");
+  }
+
+  function renderResult(p, price) {
+    animatePrice(price);
+
+    const low = Math.max(0, price - MODEL_MAE);
+    const high = price + MODEL_MAE;
+    $("range-out").textContent = "range " + inr(low) + " – " + inr(high);
+
+    // Simple confidence heuristic (damage / extreme inputs reduce it)
+    let conf = 92;
+    if (p.screen_cracked) conf -= 6;
+    if (p.body_damage) conf -= 5;
+    if (p.water_damage) conf -= 8;
+    if (p.age_months > 60) conf -= 8;
+    if (p.condition === "Poor") conf -= 6;
+    conf = Math.max(55, Math.min(95, conf));
+    $("confidence-fill").style.width = conf + "%";
+
+    const badge = $("device-badge");
+    if (badge) {
+      const svg = badge.querySelector("svg");
+      badge.textContent = "";
+      if (svg) badge.appendChild(svg);
+      badge.appendChild(document.createTextNode(" " + p.brand + " · " + p.condition));
+    }
+
+    renderDrivers(p, price);
+  }
+
+  // ---------- API call (timeout + 1 retry for Render cold start) ----------
+  async function callApi(payload, attempt) {
+    attempt = attempt || 1;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+
     try {
-      const payload = {
-        brand: el('brand').value, condition: el('condition').value,
-        original_price: num('original_price'), age_months: num('age_months'),
-        battery_health: num('battery_health'),
-        screen_cracked: sw('screen_cracked'), body_damage: sw('body_damage'),
-        repair_history: num('repair_history'), water_damage: sw('water_damage'),
-        warranty_remaining_months: num('warranty_remaining_months'),
-        box_available: sw('box_available'), charger_available: sw('charger_available'),
-        market_demand_score: num('market_demand_score'),
-      };
-      out.textContent = 'Calculating…';
-      slow = setTimeout(() => out.textContent = 'Server waking up, ~1 min…', 4000);
-      const ctrl = new AbortController();
-      kill = setTimeout(() => ctrl.abort(), 90000);
-
-      const res = await fetch('https://resaleiq-checkyourownphone.onrender.com/prediction', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload), signal: ctrl.signal,
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
       });
-      
-      const text = await res.text();
-
-      console.log('Prediction status:', res.status);
-      console.log('Prediction response:', JSON.stringify(text));
+      clearTimeout(timer);
 
       if (!res.ok) {
-        throw new Error(`Server ${res.status}: ${text.slice(0, 200) || 'Empty response'}`);
+        let detail = "";
+        try {
+          const j = await res.json();
+          detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+        } catch (_) {}
+        throw new Error("Server error " + res.status + (detail ? ": " + detail : ""));
       }
-
-      if (!text.trim()) {
-        throw new Error('Backend returned an empty response');
+      return await res.json();
+    } catch (err) {
+      clearTimeout(timer);
+      const networkFail = err.name === "AbortError" || err instanceof TypeError;
+      if (networkFail && attempt < 2) {
+        $("range-out").textContent = "Server jaag raha hai, dubara try kar rahe hain…";
+        await new Promise((r) => setTimeout(r, 4000));
+        return callApi(payload, attempt + 1);
       }
-
-      let result;
-      try {
-        result = JSON.parse(text);
-      } catch {
-        throw new Error('Invalid JSON response: ' + text.slice(0, 200));
-      }
-
-      const p = result.predicted_resale_price;
-
-      if (typeof p !== 'number' || !Number.isFinite(p)) {
-        throw new Error('Invalid predicted price: ' + text.slice(0, 200));
-      }
-
-      out.textContent = '₹' + Math.round(p).toLocaleString('en-IN');
-
-      const badge = $('device-badge');
-      if (badge) badge.textContent = `${payload.brand} · ${payload.condition}`;
-
-    } catch (e) {
-      console.error('Prediction error:', e);
-      out.textContent = e.name === 'AbortError'
-        ? 'Timed out, try again'
-        : 'Error: ' + e.message;
-    } finally {
-      clearTimeout(slow);
-      clearTimeout(kill);
+      throw err;
     }
   }
-      
-  //     const text = await res.text();
-  //     if (!res.ok) throw new Error(`Server ${res.status}: ${text.slice(0, 120)}`);
-  //     const p = JSON.parse(text).predicted_resale_price;
-  //     if (typeof p !== 'number') throw new Error('Bad response: ' + text.slice(0, 120));
-  //     out.textContent = '₹' + Math.round(p).toLocaleString('en-IN');
-  //     const badge = $('device-badge');
-  //     if (badge) badge.textContent = `${payload.brand} · ${payload.condition}`;
-  //   } catch (e) {
-  //     console.error(e);
-  //     out.textContent = e.name === 'AbortError' ? 'Timed out, try again' : 'Error: ' + e.message;
-  //   } finally { clearTimeout(slow); clearTimeout(kill); }
-  // }
 
-  $('estimate-btn').addEventListener('click', render);
-});
+  // ---------- Main handler ----------
+  async function estimate() {
+    const payload = buildPayload();
+    const problem = validate(payload);
+    if (problem) {
+      showError(problem);
+      return;
+    }
 
+    setLoading(true);
+    $("range-out").textContent = "Calculating…";
 
+    try {
+      const data = await callApi(payload);
+      const price = Number(data.predicted_resale_price);
+      if (!Number.isFinite(price)) throw new Error("Invalid response from server");
+      renderResult(payload, price);
+    } catch (err) {
+      console.error("Prediction error:", err);
+      if (err.name === "AbortError" || err instanceof TypeError) {
+        showError("Server se connect nahi ho paya. Thodi der baad try karo.");
+      } else {
+        showError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
+  const btn = $("estimate-btn");
+  if (btn) btn.addEventListener("click", estimate);
 
-
-
-
-
-
+  const form = $("predict-form");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      estimate();
+    });
+  }
+})();
